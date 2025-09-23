@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "streamgraph"
+version = "0.1.0"
+description = "A compact Matplotlib streamgraph helper with ordering, margins, smoothing, curves, and labels."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Rapty" }
+]
+keywords = ["matplotlib", "visualization", "streamgraph", "plot", "charts"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Typing :: Typed",
+]
+dependencies = [
+  "numpy>=1.20",
+  "matplotlib>=3.4",
+  "scipy>=1.6; python_version>='3.8'",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourname/streamgraph"
+Issues = "https://github.com/yourname/streamgraph/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  { include = "streamgraph", from = "src" }
+]
+
+[tool.hatch.build]
+include = [
+  "src/streamgraph/py.typed",
+]
+
+

@@ -1,0 +1,46 @@
+name: Build and Publish Docs
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-docs.txt
+
+      - name: Build site to docs/
+        run: |
+          mkdocs build --clean
+
+      - name: Publish to docs/ on push
+        if: github.event_name == 'push'
+        run: |
+          # Commit and push the built site in docs/ so GitHub Pages (docs folder) can serve it
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "No changes to docs"
+          else
+            git commit -m "docs: update site [skip ci]"
+            git push
+          fi

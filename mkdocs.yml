@@ -1,0 +1,46 @@
+site_name: streamgraph
+site_description: A compact Matplotlib streamgraph helper
+repo_url: https://github.com/yourname/streamgraph
+site_dir: docs
+docs_dir: docs_src
+hooks:
+  - docs_hooks.py
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Guide: guide.ipynb
+  - API: api.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: false
+            show_symbol_type_toc: false
+            separate_signature: true
+            line_length: 80
+            docstring_style: numpy
+            docstring_section_style: table
+            filters:
+              - "!^_"
+  - mkdocs-jupyter:
+      execute: false
+markdown_extensions:
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed
+  - pymdownx.magiclink
