@@ -1,9 +1,7 @@
-name: Build and Publish Docs
+name: (deprecated) Build and Publish Docs
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -31,17 +29,7 @@ jobs:
         run: |
           mkdocs build --clean
 
-      - name: Publish to docs/ on push
-        if: github.event_name == 'push'
-        run: |
-          # Commit and push the built site in docs/ so GitHub Pages (docs folder) can serve it
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A docs
-          if git diff --cached --quiet; then
-            echo "No changes to docs"
-          else
-            git commit -m "docs: update site [skip ci]"
-            git push
-          fi
+      - name: Disabled legacy publish step
+        if: false
+        run: echo "Disabled in favor of Pages workflow"
           
