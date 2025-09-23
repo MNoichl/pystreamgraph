@@ -45,8 +45,5 @@ plt.show()
 - `pchip_interpolate(x, y, ...)` – shape‑preserving cubic interpolation.
 - `catmull_rom_interpolate(x, y, ...)` – Catmull–Rom curve interpolation.
 
-## License
-
-MIT
 
 
