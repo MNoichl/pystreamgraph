@@ -8,6 +8,12 @@ A compact Matplotlib streamgraph helper with ordering, margins, optional smoothi
 pip install streamgraph
 ```
 
+### Install from GitHub (no PyPI name needed)
+
+```bash
+pip install git+https://github.com/MNoichl/streamgraph.git
+```
+
 ## Quickstart
 
 ```python

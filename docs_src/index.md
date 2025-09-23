@@ -4,9 +4,14 @@ A little vibe-coded package to help with the plotting of streamgraphs in python.
 
 ## Install
 
-(soon!)
 ```bash
 pip install streamgraph
+```
+
+### Install from GitHub (if PyPI name is undecided)
+
+```bash
+pip install git+https://github.com/MNoichl/streamgraph.git
 ```
 
 ## Quickstart
@@ -42,5 +47,5 @@ plt.show()
 
 ## Links
 
-- Source code: https://github.com/yourname/streamgraph
-- Issues: https://github.com/yourname/streamgraph/issues
+- Source code: https://github.com/MNoichl/streamgraph
+- Issues: https://github.com/MNoichl/streamgraph/issues
