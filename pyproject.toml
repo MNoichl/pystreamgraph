@@ -38,6 +38,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/MNoichl/streamgraph"
 Issues = "https://github.com/MNoichl/streamgraph/issues"
+Documentation = "https://MNoichl.github.io/streamgraph/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/streamgraph"]

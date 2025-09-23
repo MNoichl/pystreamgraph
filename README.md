@@ -43,6 +43,11 @@ plt.show()
 
 ![Example streamgraph](images/streamgraph_base.png)
 
+## Links
+
+- Docs: https://MNoichl.github.io/streamgraph/
+- Source: https://github.com/MNoichl/streamgraph
+- Issues: https://github.com/MNoichl/streamgraph/issues
 
 ## API
 

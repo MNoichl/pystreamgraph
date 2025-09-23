@@ -47,5 +47,6 @@ plt.show()
 
 ## Links
 
+- Docs: https://MNoichl.github.io/streamgraph/
 - Source code: https://github.com/MNoichl/streamgraph
 - Issues: https://github.com/MNoichl/streamgraph/issues
