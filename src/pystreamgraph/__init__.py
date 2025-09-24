@@ -32,6 +32,9 @@ __all__ = [
     "streamgraph_envelopes",
     "catmull_rom_interpolate",
     "pchip_interpolate",
+    # Global ordering helpers (Di Bartolomeo & Hu, 2016)
+    "order_bestfirst",
+    "order_twoopt",
 ]
 
 
@@ -134,12 +137,70 @@ def _baseline_weighted(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     return g0
 
 
+def _weighted_median(values: np.ndarray, weights: np.ndarray) -> float:
+    """Weighted median of values with non-negative weights.
+
+    Reference: Di Bartolomeo & Hu (2016) propose replacing the 2-norm with a
+    weighted 1-norm; the minimizer is a weighted median.
+    """
+    v = np.asarray(values, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    if v.size == 0:
+        return 0.0
+    order = np.argsort(v)
+    v = v[order]
+    w = w[order]
+    cw = np.cumsum(w)
+    cutoff = 0.5 * np.sum(w)
+    idx = int(np.searchsorted(cw, cutoff, side="left"))
+    return float(v[min(idx, len(v) - 1)])
+
+
+def _baseline_l1_weighted(X: np.ndarray, Y: np.ndarray, orders: list[list[int]]) -> np.ndarray:
+    """
+    L1 weighted baseline per Di Bartolomeo & Hu (2016):
+    g0'(x) = weighted_median(-A_i(x), weights = f_i(x)), integrate then center.
+
+    Where A_i(x) = 0.5 f_i'(x) + sum_{j<=i-1} f_j'(x) under the instantaneous order.
+    """
+    X = np.asarray(X, dtype=float)
+    Y = np.asarray(Y, dtype=float)
+    k, n = Y.shape
+    sumY = Y.sum(axis=0)
+    sumY_safe = np.where(sumY <= 0.0, 1.0, sumY)
+
+    dYdx = np.gradient(Y, X, axis=1)
+    g0prime = np.zeros(n, dtype=float)
+    for t in range(n):
+        if sumY[t] <= 0.0:
+            g0prime[t] = 0.0
+            continue
+        idx = orders[t]
+        dy_ord_t = dYdx[idx, t]
+        y_ord_t = Y[idx, t]
+        prefix = np.cumsum(dy_ord_t)
+        prefix_minus = np.concatenate(([0.0], prefix[:-1]))
+        A = 0.5 * dy_ord_t + prefix_minus
+        g0prime[t] = _weighted_median(-A, y_ord_t)
+
+    # integrate and center midline
+    g0 = np.zeros_like(g0prime)
+    if n >= 2:
+        dx = np.diff(X)
+        g0[1:] = np.cumsum(0.5 * (g0prime[1:] + g0prime[:-1]) * dx)
+
+    midline = g0 + 0.5 * sumY
+    g0 = g0 - float(np.mean(midline))
+    return g0
+
+
 def streamgraph_envelopes(
     Y: np.ndarray,
     margin_frac: float = 0.0,
     order_mode: str = "by_value",
     X: Optional[np.ndarray] = None,
     wiggle_reduction: str = "none",
+    global_order: Optional[Sequence[int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute bottom and top envelopes for each layer.
 
@@ -149,14 +210,16 @@ def streamgraph_envelopes(
         Non-negative series as rows.
     margin_frac : float
         Fraction of the column sum reserved for gaps between layers.
-    order_mode : {'by_value','none'}
-        Sorting at each time step or not.
+    order_mode : {'by_value','none','global'}
+        Sorting at each time step, not at all, or use a fixed global order.
     X : array-like or None
-        Required when wiggle_reduction='weighted'. Ignored otherwise.
-    wiggle_reduction : {'none','unweighted','weighted'}
+        Required when wiggle_reduction in {'weighted','l1_weighted'}. Ignored otherwise.
+    wiggle_reduction : {'none','unweighted','weighted','l1_weighted'}
         Baseline strategy to reduce wiggle. 'none' uses the classic centered
         silhouette. 'unweighted' uses the closed-form deviation-minimizing
-        baseline. 'weighted' uses the Streamgraph baseline (requires X).
+        baseline. 'weighted' uses the Streamgraph baseline (Byron–Wattenberg, L2).
+        'l1_weighted' uses the Di Bartolomeo & Hu (2016) L1 baseline via
+        weighted median of (-A_i) per x, then integrates and centers.
 
     Returns
     -------
@@ -173,14 +236,17 @@ def streamgraph_envelopes(
     orders: list[list[int]] = []
     prev_order = None
     for t in range(n):
-        order_t = _order_indices(Y[:, t], "none" if order_mode == "none" else "by_value", previous=prev_order)
+        if order_mode == "global" and global_order is not None:
+            order_t = list(global_order)
+        else:
+            order_t = _order_indices(Y[:, t], "none" if order_mode == "none" else "by_value", previous=prev_order)
         orders.append(order_t)
         prev_order = order_t
 
     # Compute baseline according to wiggle reduction mode
     mode = (wiggle_reduction or "none").lower()
-    if mode not in {"none", "unweighted", "weighted"}:
-        raise ValueError("wiggle_reduction must be one of {'none','unweighted','weighted'}")
+    if mode not in {"none", "unweighted", "weighted", "l1_weighted"}:
+        raise ValueError("wiggle_reduction must be one of {'none','unweighted','weighted','l1_weighted'}")
 
     if mode == "none":
         g0 = _baseline_centered(sumY, margin_frac, k)
@@ -194,7 +260,7 @@ def streamgraph_envelopes(
             g0[t] = - float(np.dot(weights, y_ord_t)) / float(k + 1)
         # Center including margins by shifting down half total gap
         g0 = g0 - 0.5 * (margin_frac * sumY_safe)
-    else:  # weighted
+    elif mode == "weighted":
         if X is None:
             raise ValueError("X must be provided when wiggle_reduction='weighted'")
         X = np.asarray(X, dtype=float)
@@ -221,6 +287,15 @@ def streamgraph_envelopes(
         # Center midline around zero; then account for margins
         midline = g0 + 0.5 * sumY
         g0 = g0 - float(np.mean(midline))
+        g0 = g0 - 0.5 * (margin_frac * sumY_safe)
+    else:  # l1_weighted
+        if X is None:
+            raise ValueError("X must be provided when wiggle_reduction='l1_weighted'")
+        X = np.asarray(X, dtype=float)
+        if X.size != n:
+            raise ValueError("X must have the same length as Y's time dimension")
+        g0 = _baseline_l1_weighted(X, Y, orders)
+        # Account for margins by shifting down half total gap
         g0 = g0 - 0.5 * (margin_frac * sumY_safe)
 
     baseline = g0
@@ -392,6 +467,7 @@ def plot_streamgraph(
     curve_method: str = "pchip",
     baseline: str = "center",
     wiggle_reduction: str = "weighted",
+    global_order: Optional[Sequence[int]] = None,
     pad_frac: float = 0.05,
     # Label spacing and connector helpers (for start/end)
     label_min_gap_frac: float = 0.02,
@@ -452,11 +528,12 @@ def plot_streamgraph(
     Ys = smooth_series(Y, smooth_window)
     
     # Stacking/interpolation
-    order_mode = "by_value" if sorted_streams else "none"
+    # Determine ordering mode: if a global order is provided, use it
+    order_mode = "global" if global_order is not None else ("by_value" if sorted_streams else "none")
     if curve_samples and curve_samples > 1:
         # Compute envelopes on the original grid, then smooth each boundary curve.
         b_raw, t_raw = streamgraph_envelopes(Ys, margin_frac=margin_frac, order_mode=order_mode,
-                                             X=X, wiggle_reduction=wiggle_reduction)
+                                             X=X, wiggle_reduction=wiggle_reduction, global_order=global_order)
 
         Xp = None
         b_smooth_list = []
@@ -476,7 +553,7 @@ def plot_streamgraph(
         tops = np.vstack(t_smooth_list)
     else:
         bottoms, tops = streamgraph_envelopes(Ys, margin_frac=margin_frac, order_mode=order_mode,
-                                              X=X, wiggle_reduction=wiggle_reduction)
+                                              X=X, wiggle_reduction=wiggle_reduction, global_order=global_order)
         Xp = X
 
     # Plot
@@ -559,8 +636,16 @@ def plot_streamgraph(
     if label_placement and labels is not None:
         # Determine placement strategy
         position = (label_position or "peak").lower()
-        if position not in {"peak", "start", "end", "max_width", "balanced"}:
-            raise ValueError("label_position must be one of {'peak','start','end','max_width','balanced'}")
+        if position == "paper_fast":
+            # Backward-compat alias; prefer clearer name 'sliding_window'
+            try:
+                import warnings
+                warnings.warn("label_position='paper_fast' is deprecated; use 'sliding_window'", DeprecationWarning)
+            except Exception:
+                pass
+            position = "sliding_window"
+        if position not in {"peak", "start", "end", "max_width", "balanced", "sliding_window"}:
+            raise ValueError("label_position must be one of {'peak','start','end','max_width','balanced','sliding_window'}")
 
         # Margin in x-units to nudge labels away from stream boundary
         x_min0, x_max0 = float(Xp.min()), float(Xp.max())
@@ -1183,6 +1268,9 @@ def plot_streamgraph(
                 x = Xp[j1] + x_margin
                 y = bottoms[i, j1] + 0.5 * thickness[j1]
                 label_targets.append((i, x, y, "left"))
+            elif position == "sliding_window":
+                # Placed later after defining helper; handled after loop
+                pass
             else:  # position == 'balanced'
                 # Build and optimize candidates only once, then break loop to render
                 pass
@@ -1195,6 +1283,28 @@ def plot_streamgraph(
             optimized = _sa_optimize(cands, rects, label_px_sizes, (xmin, xmax), (ymin, ymax))
             # Replace label_targets with optimized
             label_targets = optimized
+        elif position == "sliding_window":
+            # Fast in-stream labeler per Di Bartolomeo & Hu (2016)
+            for i in range(Y.shape[0]):
+                lab = labels[i] if i < len(labels) else f"S{i+1}"
+                color_i = (label_color if isinstance(label_color, str) else (label_color[i] if label_color else "black"))
+                try:
+                    _place_ok = place_label_fast_on_layer(
+                        ax, Xp, bottoms[i], tops[i], str(lab),
+                        min_fontsize=8, max_fontsize=int(label_sizes[i]),
+                        fontfamily=None, fontweight=label_weight,
+                        color=color_i,
+                    )
+                except Exception:
+                    # Fallback: place at peak like 'peak' mode
+                    thickness = tops[i] - bottoms[i]
+                    if np.all(thickness <= 0):
+                        continue
+                    j = int(np.argmax(thickness))
+                    x = Xp[j]
+                    y = bottoms[i, j] + 0.5 * thickness[j]
+                    ax.text(x, y, str(lab), ha="center", va="center",
+                            fontsize=label_sizes[i], weight=label_weight, color=color_i)
 
         # De-overlap start/end labels vertically using a greedy pass
         if position in {"start", "end"} and label_targets:
@@ -1286,6 +1396,243 @@ def plot_streamgraph(
             ax.set_xlim(xmin, xmax)
 
     return ax
+
+
+# ---------- Global ordering (BestFirst + TwoOpt) per Di Bartolomeo & Hu (2016) ----------
+
+def _l1_wiggle_of_midline(X: np.ndarray, mid: np.ndarray) -> float:
+    """Sum of absolute slope of the midline, discrete 1-norm."""
+    g = np.gradient(mid, X)
+    return float(np.sum(np.abs(g)))
+
+
+def _wiggle_increment_when_added(X: np.ndarray, side_baseline: np.ndarray, y: np.ndarray) -> float:
+    """Wiggle increment if we add layer y on this side (midline = base + 0.5*y)."""
+    return _l1_wiggle_of_midline(X, side_baseline + 0.5 * y)
+
+
+def order_bestfirst(X: np.ndarray, Y: np.ndarray) -> tuple[list[int], list[int]]:
+    """
+    Return (center_out_top, center_out_bottom) lists of layer indices.
+    Greedy bipartition that adds the layer/side with lowest incremental L1 midline wiggle.
+
+    Reference: Di Bartolomeo & Hu (2016), BestFirst stage.
+    """
+    X = np.asarray(X, float)
+    Y = np.asarray(Y, float)
+    k, n = Y.shape
+    remaining = list(range(k))
+    top_base = np.zeros(n, float)
+    bot_base = np.zeros(n, float)
+    top_list: list[int] = []
+    bot_list: list[int] = []
+    while remaining:
+        best: Optional[tuple[float, str, int]] = None
+        for i in remaining:
+            y = Y[i]
+            s_top = _wiggle_increment_when_added(X, top_base, y)
+            s_bot = _wiggle_increment_when_added(X, bot_base, y)
+            if best is None or s_top < best[0]:
+                best = (s_top, "top", i)
+            if s_bot < best[0]:
+                best = (s_bot, "bot", i)
+        _, side, pick = best  # type: ignore
+        remaining.remove(pick)
+        if side == "top":
+            top_list.append(pick)
+            top_base = top_base + Y[pick]
+        else:
+            bot_list.append(pick)
+            bot_base = bot_base + Y[pick]
+    return top_list, bot_list
+
+
+def _inside_out_scan(X: np.ndarray, side_list: list[int], Y: np.ndarray) -> list[int]:
+    """
+    Rebuild one side inside-out: choose head or tail, whichever lowers incremental wiggle.
+    """
+    from collections import deque
+    dq = deque(side_list)
+    n = Y.shape[1]
+    base = np.zeros(n, float)
+    out: list[int] = []
+    while dq:
+        cand_left = dq[0]
+        cand_right = dq[-1] if len(dq) > 1 else dq[0]
+        sL = _wiggle_increment_when_added(X, base, Y[cand_left])
+        sR = _wiggle_increment_when_added(X, base, Y[cand_right])
+        if sL <= sR:
+            pick = dq.popleft()
+        else:
+            pick = dq.pop()
+        out.append(pick)
+        base = base + Y[pick]
+    return out
+
+
+def order_twoopt(
+    X: np.ndarray,
+    Y: np.ndarray,
+    repeats: int = 8,
+    scans: int = 3,
+    rng: Optional[np.random.Generator] = None,
+) -> list[int]:
+    """
+    Build BestFirst bipartition, then improve each side with inside-out scans,
+    repeating from shuffled starts to avoid bad bipartitions. Returns a global order.
+
+    Reference: Di Bartolomeo & Hu (2016), TwoOpt stage.
+    """
+    if rng is None:
+        rng = np.random.default_rng(0)
+
+    best_order: Optional[list[int]] = None
+    best_score = np.inf
+
+    base_top, base_bot = order_bestfirst(X, Y)
+
+    for _ in range(max(1, repeats)):
+        top = base_top.copy()
+        bot = base_bot.copy()
+        rng.shuffle(top)
+        rng.shuffle(bot)
+
+        for _s in range(max(1, scans)):
+            top = _inside_out_scan(X, top, Y)
+            bot = _inside_out_scan(X, bot, Y)
+
+        # Interleave bottom and top (center-out)
+        interleaved: list[int] = []
+        for a, b in zip(bot, top):
+            interleaved.append(a)
+            interleaved.append(b)
+        if len(bot) > len(top):
+            interleaved.extend(bot[len(top):])
+        elif len(top) > len(bot):
+            interleaved.extend(top[len(bot):])
+
+        # Evaluate total L1 midline wiggle when stacking center-out
+        n = Y.shape[1]
+        g0 = np.zeros(n, float)
+        score = 0.0
+        for j in interleaved:
+            mid = g0 + 0.5 * Y[j]
+            score += _l1_wiggle_of_midline(X, mid)
+            g0 = g0 + Y[j]
+        if score < best_score:
+            best_score = score
+            best_order = interleaved
+
+    return best_order if best_order is not None else list(range(Y.shape[0]))
+
+
+# ---------- Fast in-stream labeler (sliding-window) per Di Bartolomeo & Hu (2016) ----------
+
+from collections import deque
+
+
+def _sliding_window_min(a: np.ndarray, w: int) -> np.ndarray:
+    a = np.asarray(a, float)
+    m = len(a)
+    if w <= 0 or w > m:
+        raise ValueError("bad window")
+    dq = deque()
+    out = np.empty(m - w + 1, float)
+    for i, val in enumerate(a):
+        while dq and dq[0] <= i - w:
+            dq.popleft()
+        while dq and a[dq[-1]] >= val:
+            dq.pop()
+        dq.append(i)
+        if i >= w - 1:
+            out[i - w + 1] = a[dq[0]]
+    return out
+
+
+def _sliding_window_max(a: np.ndarray, w: int) -> np.ndarray:
+    return -_sliding_window_min(-np.asarray(a, float), w)
+
+
+def _label_window_search(
+    top: np.ndarray,
+    bot: np.ndarray,
+    w: int,
+    sigma: float,
+) -> Optional[tuple[int, float]]:
+    """
+    Return (i, hmax) where i is the left index of the best window and hmax is Ti-Bi.
+    Windows are [i, i+w-1]. If no feasible window, return None.
+    """
+    T = _sliding_window_min(top, w)
+    B = _sliding_window_max(bot, w)
+    H = T - B
+    imax = int(np.argmax(H))
+    hmax = float(H[imax])
+    if hmax > 0 and (w / hmax) <= sigma:
+        return imax, hmax
+    return None
+
+
+def place_label_fast_on_layer(
+    ax: plt.Axes,
+    Xp: np.ndarray,
+    bottom: np.ndarray,
+    top: np.ndarray,
+    text: str,
+    min_fontsize: int = 6,
+    max_fontsize: int = 18,
+    fontfamily: Optional[str] = None,
+    fontweight: str = "bold",
+    shrink: float = 0.9,
+    color: str = "black",
+    sigma_override: Optional[float] = None,
+) -> bool:
+    """
+    Try to place `text` inside the stream using the paper's O(m log W) scheme.
+    Returns True if placed.
+    """
+    fig = ax.figure
+    fig.canvas.draw()  # ensure renderer exists
+    renderer = fig.canvas.get_renderer()
+
+    # Average pixel per sample along X
+    px0, _ = ax.transData.transform((float(Xp[0]), 0.0))
+    px1, _ = ax.transData.transform((float(Xp[-1]), 0.0))
+    avg_px_per_sample = max(1.0, abs(px1 - px0) / max(1, len(Xp) - 1))
+
+    def text_px_wh(fontsize: float) -> tuple[float, float]:
+        t = ax.text(0, 0, text, fontsize=fontsize, fontfamily=fontfamily, weight=fontweight, alpha=0.0)
+        bb = t.get_window_extent(renderer=renderer)
+        t.remove()
+        return float(bb.width), float(bb.height)
+
+    fs = float(max_fontsize)
+    while fs >= float(min_fontsize):
+        w_px, h_px = text_px_wh(fs)
+        w_samples = int(max(1, round(w_px / avg_px_per_sample)))
+        (x_mid, y0) = ax.transData.inverted().transform((px0, 0.0))
+        (x_mid, y1) = ax.transData.inverted().transform((px0, h_px))
+        h_data = abs(y1 - y0)
+        sigma = sigma_override if sigma_override is not None else (w_samples / max(h_data, 1e-9))
+
+        try:
+            found = _label_window_search(top, bottom, w_samples, sigma)
+        except ValueError:
+            found = None
+        if found is not None:
+            i_left, hmax = found
+            j_center = i_left + w_samples // 2
+            j_center = int(np.clip(j_center, 0, len(Xp) - 1))
+            x = float(Xp[j_center])
+            y = 0.5 * float(top[j_center] + bottom[j_center])
+            ax.text(x, y, text,
+                    fontsize=fs, fontfamily=fontfamily, weight=fontweight,
+                    color=color, ha="center", va="center", clip_on=True)
+            return True
+        fs = max(min_fontsize, fs * shrink)
+        if fs == min_fontsize:
+            fs -= 1
+    return False
 
 
 # ---------- Minimal demo when executed directly ----------
