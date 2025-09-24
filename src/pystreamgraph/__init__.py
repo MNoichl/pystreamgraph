@@ -12,6 +12,7 @@ A compact Matplotlib streamgraph helper with:
 Author: Max Noichl & 🦖
 """
 
+
 from __future__ import annotations
 from typing import List, Optional, Tuple, Mapping, Sequence, Union, Any
 import numpy as np
