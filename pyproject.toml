@@ -3,7 +3,7 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "streamgraph"
+name = "pystreamgraph"
 dynamic = ["version"]
 description = "A compact Matplotlib streamgraph helper with ordering, margins, smoothing, curves, and labels."
 readme = "README.md"
@@ -36,19 +36,19 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/MNoichl/streamgraph"
-Issues = "https://github.com/MNoichl/streamgraph/issues"
-Documentation = "https://MNoichl.github.io/streamgraph/"
+Homepage = "https://github.com/MNoichl/pystreamgraph"
+Issues = "https://github.com/MNoichl/pystreamgraph/issues"
+Documentation = "https://MNoichl.github.io/pystreamgraph/"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/streamgraph"]
+packages = ["src/pystreamgraph"]
 
 [tool.hatch.build]
 include = [
-  "src/streamgraph/py.typed",
+  "src/pystreamgraph/py.typed",
 ]
 
 [tool.hatch.version]
-path = "src/streamgraph/__init__.py"
+path = "src/pystreamgraph/__init__.py"
 
 

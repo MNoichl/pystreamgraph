@@ -1,17 +1,17 @@
-# streamgraph
+# pystreamgraph
 
 A little vibe-coded package to help with the plotting of streamgraphs in python. It was already possible in matplotlib, but quite messy. This package should make it a one-liner. Implements ordering of streams, margins between them, smoothing, and various options for transitions, as well as smart label-placement via simulated annealing    .
 
 ## Install
 
 ```bash
-pip install streamgraph
+pip install pystreamgraph
 ```
 
 ### Install from GitHub (if PyPI name is undecided)
 
 ```bash
-pip install git+https://github.com/MNoichl/streamgraph.git
+pip install git+https://github.com/MNoichl/pystreamgraph.git
 ```
 
 ## Quickstart
@@ -19,7 +19,7 @@ pip install git+https://github.com/MNoichl/streamgraph.git
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-from streamgraph import plot_streamgraph
+from pystreamgraph import plot_streamgraph
 
 rng = np.random.default_rng(7)
 n, k = 40, 5
@@ -47,6 +47,6 @@ plt.show()
 
 ## Links
 
-- Docs: https://MNoichl.github.io/streamgraph/
-- Source code: https://github.com/MNoichl/streamgraph
-- Issues: https://github.com/MNoichl/streamgraph/issues
+- Docs: https://MNoichl.github.io/pystreamgraph/
+- Source code: https://github.com/MNoichl/pystreamgraph
+- Issues: https://github.com/MNoichl/pystreamgraph/issues

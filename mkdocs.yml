@@ -1,6 +1,6 @@
-site_name: streamgraph
+site_name: pystreamgraph
 site_description: A compact Matplotlib streamgraph helper
-repo_url: https://github.com/MNoichl/streamgraph
+repo_url: https://github.com/MNoichl/pystreamgraph
 site_dir: docs
 docs_dir: docs_src
 hooks:

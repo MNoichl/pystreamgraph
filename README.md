@@ -1,17 +1,17 @@
-# streamgraph
+# pystreamgraph
 
 A compact Matplotlib streamgraph helper with ordering, margins, optional smoothing, shape‑preserving PCHIP boundary curves (default), optional Catmull–Rom curves, and label placement.
 
 ## Install
 
 ```bash
-pip install streamgraph
+pip install pystreamgraph
 ```
 
 ### Install from GitHub (no PyPI name needed)
 
 ```bash
-pip install git+https://github.com/MNoichl/streamgraph.git
+pip install git+https://github.com/MNoichl/pystreamgraph.git
 ```
 
 ## Quickstart
@@ -19,7 +19,7 @@ pip install git+https://github.com/MNoichl/streamgraph.git
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-from streamgraph import plot_streamgraph
+from pystreamgraph import plot_streamgraph
 
 rng = np.random.default_rng(7)
 n, k = 40, 5
@@ -45,9 +45,9 @@ plt.show()
 
 ## Links
 
-- Docs: https://MNoichl.github.io/streamgraph/
-- Source: https://github.com/MNoichl/streamgraph
-- Issues: https://github.com/MNoichl/streamgraph/issues
+- Docs: https://MNoichl.github.io/pystreamgraph/
+- Source: https://github.com/MNoichl/pystreamgraph
+- Issues: https://github.com/MNoichl/pystreamgraph/issues
 
 ## API
 

@@ -48,7 +48,7 @@ jobs:
           PKG_VERSION=$(python - <<'PY'
 from pathlib import Path
 import re
-p = Path('src/streamgraph/__init__.py').read_text(encoding='utf-8')
+p = Path('src/pystreamgraph/__init__.py').read_text(encoding='utf-8')
 m = re.search(r"__version__\s*=\s*['\"]([^'\"]+)['\"]", p)
 print(m.group(1) if m else '')
 PY
