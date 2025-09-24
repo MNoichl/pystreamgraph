@@ -52,3 +52,14 @@ plt.show()
 - Docs: https://MNoichl.github.io/pystreamgraph/
 - Source code: https://github.com/MNoichl/pystreamgraph
 - Issues: https://github.com/MNoichl/pystreamgraph/issues
+
+
+## Inspiration
+
+This package takes up ideas from these papers, among others: 
+
+Byron, L., & Wattenberg, M. (2008). Stacked graphs—Geometry & aesthetics. IEEE Transactions on Visualization and Computer Graphics, 14(6), 1245–1252. [https://doi.org/10.1109/TVCG.2008.166](https://doi.org/10.1109/TVCG.2008.166)
+
+Di Bartolomeo, M., & Hu, Y. (2016). There is more to streamgraphs than movies: Better aesthetics via ordering and lassoing. Computer Graphics Forum, 35(3), 341–350. [https://doi.org/10.1111/cgf.12910](https://doi.org/10.1111/cgf.12910)
+
+Havre, S., Hetzler, B., & Nowell, L. (2000). ThemeRiver: Visualizing theme changes over time. In IEEE Symposium on Information Visualization (InfoVis 2000) (pp. 115–123). IEEE. [https://doi.org/10.1109/INFVIS.2000.885098](https://doi.org/10.1109/INFVIS.2000.885098)
