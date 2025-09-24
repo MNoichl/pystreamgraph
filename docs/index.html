@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="A compact Matplotlib streamgraph helper" />
       <link rel="shortcut icon" href="img/favicon.ico" />
-    <title>streamgraph</title>
+    <title>pystreamgraph</title>
     <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
@@ -31,7 +31,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
     <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-          <a href="." class="icon icon-home"> streamgraph
+          <a href="." class="icon icon-home"> pystreamgraph
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
       <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
@@ -57,7 +57,7 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="guide/">Streamgraph demo</a>
+                <li class="toctree-l1"><a class="reference internal" href="guide/">pystreamgraph demo</a>
                 </li>
               </ul>
               <ul>
@@ -71,7 +71,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
       <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href=".">streamgraph</a>
+          <a href=".">pystreamgraph</a>
         
       </nav>
       <div class="wy-nav-content">
@@ -80,7 +80,7 @@
     <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
       <li class="breadcrumb-item active">Home</li>
     <li class="wy-breadcrumbs-aside">
-          <a href="https://github.com/yourname/streamgraph/edit/master/docs/index.md" class="icon icon-github"> Edit on GitHub</a>
+          <a href="https://github.com/MNoichl/pystreamgraph/edit/master/docs/index.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
   <hr/>
@@ -88,18 +88,18 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="streamgraph">streamgraph<a class="headerlink" href="#streamgraph" title="Permanent link">&para;</a></h1>
+                <h1 id="pystreamgraph">pystreamgraph<a class="headerlink" href="#pystreamgraph" title="Permanent link">&para;</a></h1>
 <p>A little vibe-coded package to help with the plotting of streamgraphs in python. It was already possible in matplotlib, but quite messy. This package should make it a one-liner. Implements ordering of streams, margins between them, smoothing, and various options for transitions, as well as smart label-placement via simulated annealing    .</p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>streamgraph
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>pystreamgraph
 </code></pre></div>
 <h3 id="install-from-github-if-pypi-name-is-undecided">Install from GitHub (if PyPI name is undecided)<a class="headerlink" href="#install-from-github-if-pypi-name-is-undecided" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/MNoichl/streamgraph.git
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/MNoichl/pystreamgraph.git
 </code></pre></div>
 <h2 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">streamgraph</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_streamgraph</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pystreamgraph</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_streamgraph</span>
 
 <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
 <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">5</span>
@@ -123,14 +123,15 @@
 <p><img alt="Example streamgraph" src="images/streamgraph_base.png" /></p>
 <h2 id="links">Links<a class="headerlink" href="#links" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Source code: <a href="https://github.com/MNoichl/streamgraph">https://github.com/MNoichl/streamgraph</a></li>
-<li>Issues: <a href="https://github.com/MNoichl/streamgraph/issues">https://github.com/MNoichl/streamgraph/issues</a></li>
+<li>Docs: <a href="https://MNoichl.github.io/pystreamgraph/">https://MNoichl.github.io/pystreamgraph/</a></li>
+<li>Source code: <a href="https://github.com/MNoichl/pystreamgraph">https://github.com/MNoichl/pystreamgraph</a></li>
+<li>Issues: <a href="https://github.com/MNoichl/pystreamgraph/issues">https://github.com/MNoichl/pystreamgraph/issues</a></li>
 </ul>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="guide/" class="btn btn-neutral float-right" title="Streamgraph demo">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="guide/" class="btn btn-neutral float-right" title="pystreamgraph demo">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -153,7 +154,7 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="https://github.com/yourname/streamgraph" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/MNoichl/pystreamgraph" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     
@@ -178,5 +179,5 @@
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-09-23 22:01:23.007034+00:00
+Build Date UTC : 2025-09-24 12:07:54.427166+00:00
 -->
