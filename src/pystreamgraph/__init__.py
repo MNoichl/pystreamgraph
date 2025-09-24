@@ -1,12 +1,13 @@
 """
-A compact Matplotlib streamgraph helper with options for
-- sorted or unsorted ordering
-- margins (vertical gaps) between streams
+A compact Matplotlib streamgraph helper with:
+
+- sorted or unsorted ordering, and optional global ordering helpers
+- vertical margins (gaps) between streams
 - optional value smoothing (moving-average)
 - boundary curve smoothing with shape-preserving PCHIP splines (default)
 - optional Catmull–Rom boundary curves
-- label placement at each layer's fattest point
-- colormap selection
+- flexible label placement: peak, start, end, max-width, balanced, sliding-window
+- colormap selection via names, sequences, or label->color mappings
 
 Author: Max Noichl & 🦖
 """
@@ -221,6 +222,10 @@ def streamgraph_envelopes(
         'l1_weighted' uses the Di Bartolomeo & Hu (2016) L1 baseline via
         weighted median of (-A_i) per x, then integrates and centers.
 
+    global_order : sequence of int, optional
+        When ``order_mode='global'``, the fixed order of layer indices to use at
+        all time steps. Length must match the number of rows in ``Y``.
+
     Returns
     -------
     bottoms, tops : arrays of shape (k, n)
@@ -319,6 +324,20 @@ def streamgraph_envelopes(
 # ---------- Curve smoothing (Catmull–Rom) ----------
 
 def _catmull_segment(p0, p1, p2, p3, t):
+    """Evaluate a Catmull–Rom spline segment.
+
+    Parameters
+    ----------
+    p0, p1, p2, p3 : array-like or float
+        Control point values (can be x or y coordinates) for the segment.
+    t : array-like or float
+        Parameter(s) in [0, 1] at which to evaluate the segment.
+
+    Returns
+    -------
+    ndarray or float
+        Interpolated values at ``t``.
+    """
     t2 = t * t
     t3 = t2 * t
     return 0.5 * (
@@ -508,7 +527,133 @@ def plot_streamgraph(
     label_balanced_min_thickness_q: float = 0.5,
 ) -> plt.Axes:
     """Plot a configurable streamgraph.
-    (Function body identical to original; renamed package only.)
+
+    Parameters
+    ----------
+    X : ndarray, shape (n,)
+        Monotonic x-coordinates.
+    Y : ndarray, shape (k, n)
+        Non-negative series (rows are layers) to be stacked.
+    labels : list of str, optional
+        Per-layer label texts. If provided and ``label_placement=True``, labels
+        are rendered using ``label_position``.
+    sorted_streams : bool, default False
+        If True, sort layers by value at each time step; otherwise keep order.
+        If ``global_order`` is provided, that fixed order takes precedence.
+    margin_frac : float, default 0.08
+        Fraction of column sum reserved for gaps between layers.
+    smooth_window : int, default 1
+        Centered moving-average window applied to values per layer (odd >= 1).
+    cmap : str | sequence | mapping | Colormap, optional
+        Color specification for layers. Strings/Colormap sample evenly; a
+        sequence is cycled/truncated to length k; a mapping uses ``labels`` as
+        keys. ``None`` defers to Matplotlib's property cycle.
+    linewidth : float, default 0.0
+        Edge line width passed to ``fill_between``.
+    alpha : float, default 1.0
+        Face alpha for ``fill_between``.
+    label_placement : bool, default True
+        Whether to place labels.
+    label_position : {'peak','start','end','max_width','balanced','sliding_window'}, default 'balanced'
+        Labeling strategy. ``sliding_window`` uses a fast in-stream algorithm
+        (Di Bartolomeo & Hu, 2016). ``balanced`` runs a small simulated
+        annealing to reduce overlap and improve placement.
+    label_color : str | list[str] | tuple[str] | None, optional
+        Label colors. Single string applies to all; list/tuple must match k.
+    label_fontsize : int, default 10
+        Base font size when no scaling is requested.
+    label_weight : str, default 'bold'
+        Font weight for labels.
+    curve_samples : int, default 200
+        Samples per original segment for boundary interpolation. If <= 1, no
+        boundary curve interpolation is applied.
+    curve_method : {'pchip','catmull_rom'}, default 'pchip'
+        Boundary curve interpolation method.
+    baseline : str, default 'center'
+        Only ``'center'`` is supported in this version.
+    wiggle_reduction : {'none','unweighted','weighted','l1_weighted'}, default 'weighted'
+        Baseline strategy used when computing envelopes. ``'weighted'`` is the
+        Streamgraph baseline (Byron–Wattenberg, L2); ``'l1_weighted'`` follows
+        Di Bartolomeo & Hu (2016).
+    global_order : sequence of int, optional
+        Fixed center-out order of layers to use across all time steps. When
+        provided, overrides ``sorted_streams``.
+    pad_frac : float, default 0.05
+        Extra vertical padding added to the y-limits.
+    label_min_gap_frac : float, default 0.02
+        Minimum vertical gap between start/end labels as a fraction of y-range.
+    label_edge_offset_frac : float, default 0.02
+        Horizontal x-offset for start/end labels as a fraction of x-range.
+    label_connectors : bool, default False
+        If True, draw connectors from start/end labels to the stream edge.
+    label_connector_color : str, optional
+        Color for label connectors (defaults to label color).
+    label_connector_alpha : float, default 0.6
+        Alpha for label connectors.
+    label_connector_linewidth : float, default 0.8
+        Line width for label connectors.
+    ax : matplotlib.axes.Axes, optional
+        Target axes. Created if None.
+    label_kwargs : Mapping[str, Any], optional
+        Extra ``matplotlib.text.Text`` kwargs applied to labels.
+    label_anchor : str, default 'center'
+        Anchor point used for in-stream labels ('peak', 'max_width', 'balanced').
+    label_plot_anchors : bool, default False
+        If True, plot the anchor points used for label placement.
+    label_point_kwargs : Mapping[str, Any], optional
+        Extra kwargs for plotting anchor points when ``label_plot_anchors``.
+    label_balanced_inset_frac : float, default 0.05
+        Fraction of x-span kept as inset where labels cannot be centered.
+    label_fontsize_min : float, optional
+        Minimum label font size when scaling by layer magnitude.
+    label_fontsize_max : float, optional
+        Maximum label font size when scaling by layer magnitude.
+    label_fontsize_by : {'sum','max','mean'}, default 'sum'
+        Statistic used when scaling label sizes.
+    label_balanced_progress : bool, default False
+        If True and ``tqdm`` is available, show progress during annealing.
+    label_balanced_fit_tolerance_px : float, default 2.0
+        Vertical tolerance (in px) when checking if text fits inside a stream.
+    label_balanced_debug_segments : bool, default False
+        If True, plot candidate midlines considered for placement.
+    label_balanced_debug_kwargs : Mapping[str, Any], optional
+        Extra line kwargs for debug segments.
+    label_balanced_candidates_per_layer : int, default 60
+        Number of candidate positions per layer for balanced placement.
+    label_balanced_restarts : int, default 2
+        Number of random annealing restarts.
+    label_balanced_T0 : float, default 2.5
+        Initial temperature for annealing.
+    label_balanced_T_min : float, default 5e-4
+        Minimum temperature for annealing.
+    label_balanced_alpha : float, default 0.94
+        Cooling factor per temperature step.
+    label_balanced_iters_per_T : int, default 240
+        Iterations per temperature step.
+    label_balanced_min_thickness_q : float, default 0.5
+        Quantile threshold of per-segment thickness used to filter candidates.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The axes the streamgraph was drawn on.
+
+    Notes
+    -----
+    - ``Y`` must be non-negative.
+    - If ``global_order`` is provided, it is used as a fixed order; otherwise
+      the order is either the input order (``sorted_streams=False``) or sorted
+      by value at each time step (``sorted_streams=True``).
+    - Boundary curve interpolation is applied to both bottom and top envelopes
+      per layer after stacking on the original grid.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> X = np.arange(50)
+    >>> rng = np.random.default_rng(0)
+    >>> Y = np.clip(rng.normal(0.6, 0.2, size=(5, 50)), 0, None)
+    >>> ax = plot_streamgraph(X, Y, labels=list("ABCDE"), label_position='balanced')
     """
     # Import the original implementation from the previous module to avoid code drift
     # if this file diverges. This line assumes the code was moved verbatim.
@@ -1532,6 +1677,20 @@ from collections import deque
 
 
 def _sliding_window_min(a: np.ndarray, w: int) -> np.ndarray:
+    """Return sliding-window minimum over a 1D array using a deque.
+
+    Parameters
+    ----------
+    a : ndarray
+        Input array of length m.
+    w : int
+        Window size (1 <= w <= m).
+
+    Returns
+    -------
+    ndarray, shape (m - w + 1,)
+        The minimum for each contiguous window of width ``w``.
+    """
     a = np.asarray(a, float)
     m = len(a)
     if w <= 0 or w > m:
@@ -1550,6 +1709,20 @@ def _sliding_window_min(a: np.ndarray, w: int) -> np.ndarray:
 
 
 def _sliding_window_max(a: np.ndarray, w: int) -> np.ndarray:
+    """Return sliding-window maximum over a 1D array using a deque.
+
+    Parameters
+    ----------
+    a : ndarray
+        Input array of length m.
+    w : int
+        Window size (1 <= w <= m).
+
+    Returns
+    -------
+    ndarray, shape (m - w + 1,)
+        The maximum for each contiguous window of width ``w``.
+    """
     return -_sliding_window_min(-np.asarray(a, float), w)
 
 
@@ -1638,6 +1811,7 @@ def place_label_fast_on_layer(
 # ---------- Minimal demo when executed directly ----------
 
 def _demo():
+    """Minimal demonstration of the streamgraph with linear and smoothed edges."""
     rng = np.random.default_rng(7)
     n, k = 40, 5
     X = np.arange(n)
