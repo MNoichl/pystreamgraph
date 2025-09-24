@@ -1,6 +1,8 @@
 # pystreamgraph
 
-A little vibe-coded package to help with the plotting of streamgraphs in python. It was already possible in matplotlib, but quite messy. This package should make it a one-liner. Implements ordering of streams, margins between them, smoothing, and various options for transitions, as well as smart label-placement via simulated annealing    .
+A vibe-coded package to help with the plotting of streamgraphs in python. Plotting streamgraphs was already possible in matplotlib, but quite messy. This package should make it a one-liner, with a lot of options for layout, smoothing, label placement etc.
+
+
 
 ## Install
 
@@ -8,7 +10,7 @@ A little vibe-coded package to help with the plotting of streamgraphs in python.
 pip install pystreamgraph
 ```
 
-### Install from GitHub (if PyPI name is undecided)
+### Install from GitHub
 
 ```bash
 pip install git+https://github.com/MNoichl/pystreamgraph.git

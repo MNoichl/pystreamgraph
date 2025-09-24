@@ -1,6 +1,6 @@
 # pystreamgraph
 
-A compact Matplotlib streamgraph helper with ordering, margins, optional smoothing, shape‑preserving PCHIP boundary curves (default), optional Catmull–Rom curves, and label placement.
+A compact Matplotlib streamgraph helper, partially vibe-coded, with a lot of options for layout, smoothing, label placement etc.
 
 ## Install
 
@@ -41,7 +41,7 @@ ax.set_title("Streamgraph with PCHIP boundaries")
 plt.show()
 ```
 
-![Example streamgraph](images/streamgraph_base.png)
+![Example streamgraph](https://raw.githubusercontent.com/MNoichl/pystreamgraph/main/images/streamgraph_base.png)
 
 ## Links
 

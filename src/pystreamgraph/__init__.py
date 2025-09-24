@@ -27,7 +27,7 @@ try:  # pragma: no cover - import guard
 except Exception:  # pragma: no cover - if SciPy is missing, fall back to pure Python
     _HAS_SCIPY = False
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 __all__ = [
     "plot_streamgraph",
